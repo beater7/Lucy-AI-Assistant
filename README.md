@@ -1,4 +1,4 @@
-# Lucy Voice Assistant
+# Lucy AI Assistant
 
 Lucy is a Windows desktop voice assistant with a small floating control widget. The Python assistant/backend is in [`Main.py`](./Main.py); the separate widget frontend is in [`lucy_ui.py`](./lucy_ui.py).
 
