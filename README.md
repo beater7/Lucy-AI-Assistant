@@ -1,6 +1,8 @@
-# Lucy Voice Assistant
+# Lucy AI Assistant
 
-Lucy is a Windows desktop voice assistant with a small floating control widget. The Python assistant/backend is in [`Main.py`](./Main.py); the separate widget frontend is in [`lucy_ui.py`](./lucy_ui.py).
+Lucy is a Windows desktop voice assistant with a small floating control widget. [`main.py`](./main.py) starts the assistant; its modules are organized into top-level `assistant/`, `model/`, `audio/`, `tools/`, and `ui/` packages.
+
+`config.py` contains shared settings; `assistant/loop.py` runs the conversation flow, `assistant/context.py` holds conversation state, and `assistant/router.py` dispatches intents. `model/ollama_client.py` handles Ollama interpretation and search summaries, `audio/speech.py` handles speech input and output, `tools/` contains web, YouTube, weather, and folder tools, and `ui/lucy_ui.py` contains the floating widget.
 
 ## What Lucy can do
 
@@ -44,10 +46,16 @@ ollama pull qwen2.5:3b
 Make sure Ollama is running, keep VLC installed, then start Lucy:
 
 ```powershell
-.\.venv\Scripts\python.exe .\Main.py
+.\.venv\Scripts\python.exe .\main.py
 ```
 
 On first startup, Lucy calibrates the microphone. Keep quiet briefly while she calibrates. She uses the Windows default microphone. Her speech detector is tuned to be more sensitive and waits 1.8 seconds of silence before treating a phrase as complete. The widget displays a live microphone waveform and follows the amplitude of Lucy's generated speech.
+
+Run the focused regression checks with:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
 
 ## Optional: Chrome YouTube extension
 
