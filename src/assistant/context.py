@@ -6,3 +6,5 @@ from dataclasses import dataclass, field
 class AssistantContext:
     history: deque[dict[str, str]] = field(default_factory=deque)
     youtube_results: list[dict[str, str]] = field(default_factory=list)
+    web_results: list[dict[str, str]] = field(default_factory=list)
+    pending_web_open: bool = False

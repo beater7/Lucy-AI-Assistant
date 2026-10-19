@@ -61,9 +61,12 @@ class InterruptibleMicrophoneStream:
 def greet_user():
     talk("Hello, I am Lucy. How can I help you?")
 
-def choose_fresh_response(response_type, responses):
+def choose_fresh_response(response_type, responses, avoid=()):
     previous = LAST_RESPONSE_BY_TYPE.get(response_type)
-    choices = [response for response in responses if response != previous]
+    excluded = set(avoid)
+    if previous is not None:
+        excluded.add(previous)
+    choices = [response for response in responses if response not in excluded]
     response = random.choice(choices or list(responses))
     LAST_RESPONSE_BY_TYPE[response_type] = response
     return response

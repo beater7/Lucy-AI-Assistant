@@ -59,10 +59,24 @@ WAKE_RESPONSES = (
 )
 
 GOODBYE_RESPONSES = (
-    "Alright, take care! I'll be right here whenever you want to chat again. Bye for now!",
-    "Bye for now! Hope the rest of your day goes well. I'll be here when you need me.",
-    "Take care! It was nice chatting with you. Talk again soon!",
-    "See you later! Have a lovely day, and don't hesitate to call if you need anything.",
+    "Alright, take care!",
+    "See you later!",
+    "Bye for now. Talk soon!",
+    "Take it easy. I'll be here when you need me.",
+    "Catch you later!",
+    "Have a good one. Bye!",
+    "Okay, I'll let you go. Take care!",
+    "Until next time!",
+)
+
+GOODNIGHT_RESPONSES = (
+    "Good night. Sleep well!",
+    "Night! Hope you get some good rest.",
+    "Sleep well. I'll be here when you need me.",
+    "Rest easy, and have a peaceful night.",
+    "Good night! Talk to you later.",
+    "Sweet dreams. Take care!",
+    "All right, I'll let you get some rest. Good night!",
 )
 
 LAST_RESPONSE_BY_TYPE = {}

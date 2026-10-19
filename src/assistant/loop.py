@@ -15,6 +15,19 @@ from model.ollama_client import interpret_request
 from .context import AssistantContext
 
 
+def is_open_confirmation(command):
+    return re.fullmatch(
+        r"\s*(?:(?:yes|yeah|yep|sure)(?:\s+please)?"
+        r"(?:[, ]+(?:open (?:it|them|one|the website|the top result)|"
+        r"bring (?:it|them) up|show me))?|please|go ahead|"
+        r"open (?:it|them|one|the website|the top result|the first one)|"
+        r"bring (?:it|them) up|show me|that one|the first one)"
+        r"[\s,!.?]*",
+        command,
+        re.IGNORECASE,
+    ) is not None
+
+
 def run_assistant(control_panel):
     if not calibrate_microphone():
         control_panel.set_status("Microphone unavailable")
@@ -55,6 +68,24 @@ def run_assistant(control_panel):
         if not listening:
             continue
 
+        if context.pending_web_open:
+            context.pending_web_open = False
+            if is_open_confirmation(command):
+                try:
+                    perform_intent(
+                        {
+                            "intent": "open_search_result",
+                            "query": "1",
+                            "reply": "",
+                        },
+                        context,
+                        command,
+                    )
+                except (RuntimeError, ValueError) as error:
+                    print(f"Request error: {error}")
+                    talk(str(error))
+                continue
+
         if handle_local_command(command):
             continue
 
@@ -64,6 +95,7 @@ def run_assistant(control_panel):
                 context.history,
                 command,
                 context.youtube_results,
+                context.web_results,
             )
         except RuntimeError as error:
             print(f"Local AI error: {error}")
@@ -77,9 +109,8 @@ def run_assistant(control_panel):
             try:
                 intent = perform_intent(
                     interpretation,
-                    context.history,
+                    context,
                     command,
-                    context.youtube_results,
                 )
             except (RuntimeError, ValueError) as error:
                 print(f"Request error: {error}")

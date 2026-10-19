@@ -5,7 +5,11 @@ import webbrowser
 from urllib.parse import quote_plus
 
 from audio.speech import choose_fresh_response, talk
-from config import GOODBYE_RESPONSES, MAX_HISTORY_MESSAGES
+from config import (
+    GOODBYE_RESPONSES,
+    GOODNIGHT_RESPONSES,
+    MAX_HISTORY_MESSAGES,
+)
 from tools.folders import browse_user_folders, open_user_folder
 from tools.weather import describe_time, describe_timezone, describe_weather, known_philippines_locations
 from tools.web import search_web
@@ -30,18 +34,51 @@ def handle_local_command(command):
 
     return False
 
-def perform_intent(interpretation, history, command, youtube_results):
+def is_lyrics_request(text):
+    return re.search(r"\blyrics?\b", text, re.IGNORECASE) is not None
+
+
+def perform_intent(interpretation, context, command):
     intent = interpretation["intent"]
     query = interpretation["query"]
     reply = interpretation["reply"]
+    history = context.history
+    youtube_results = context.youtube_results
 
     if intent == "chat":
         response = reply
     elif intent == "web_search":
-        response, sources, provider = search_web(query)
+        lyrics_request = is_lyrics_request(query) or is_lyrics_request(command)
+        context.pending_web_open = False
+        if lyrics_request:
+            _, sources, provider = search_web(query, summarize=False)
+            context.web_results[:] = sources
+            context.pending_web_open = bool(sources)
+            response = (
+                "I can't provide the full lyrics, but I found lyric pages. "
+                "Would you like me to open the top result?"
+                if sources
+                else "I can't provide the full lyrics, and I couldn't find a page to open."
+            )
+        else:
+            response, sources, provider = search_web(query)
+            context.web_results[:] = sources
+            context.pending_web_open = bool(sources)
+            if sources:
+                response = f"{response} Would you like me to open one of the websites I found?"
         print(f"Search sources ({provider}):")
         for source in sources:
             print(f"- {source['title']}: {source['url']}")
+    elif intent == "open_search_result":
+        result_number = int(query)
+        if result_number < 1 or result_number > len(context.web_results):
+            response = "I don't have that search result available. Please search again."
+        else:
+            result = context.web_results[result_number - 1]
+            if webbrowser.open(result["url"]):
+                response = f"Opened {result['title']} in your browser."
+            else:
+                response = "I couldn't open that page. Please check your browser settings."
     elif intent == "google_search":
         google_url = "https://www.google.com/search?q=" + quote_plus(query)
         if open_chrome_url(google_url):
@@ -132,7 +169,20 @@ def perform_intent(interpretation, history, command, youtube_results):
     elif intent == "resume_listening":
         response = "I'm here. What can I do for you?"
     elif intent == "goodbye":
-        response = choose_fresh_response("goodbye", GOODBYE_RESPONSES)
+        is_goodnight = re.search(r"\bgood\s*night\b", command, re.IGNORECASE)
+        farewell_responses = (
+            GOODNIGHT_RESPONSES if is_goodnight else GOODBYE_RESPONSES
+        )
+        recent_replies = [
+            message["content"]
+            for message in reversed(history)
+            if message["role"] == "assistant"
+        ][:3]
+        response = choose_fresh_response(
+            "farewell",
+            farewell_responses,
+            avoid=recent_replies,
+        )
     else:
         response = (
             "I can't do that directly yet. I can chat, tell you the time or a joke, "

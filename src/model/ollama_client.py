@@ -26,7 +26,96 @@ def is_thank_you_only(command):
     )
     return not re.sub(r"[\s,!.?]+", "", remaining)
 
-def interpret_request(history, command, youtube_results):
+
+def is_goodbye_request(command):
+    return re.search(
+        r"\b(?:good\s*night|goodbye|bye(?:[\s-]*bye)?|see\s+you|take\s+care|"
+        r"that's\s+all|you\s+can\s+stop(?:\s+now)?)\b",
+        command,
+        re.IGNORECASE,
+    ) is not None
+
+
+def lyrics_search_query(command):
+    if not re.search(r"\blyrics?\b", command, re.IGNORECASE):
+        return None
+
+    subject_match = re.search(
+        r"\blyrics?\s+(?:of|for|to)\s+(.+)",
+        command,
+        re.IGNORECASE,
+    )
+    if subject_match:
+        subject = subject_match.group(1)
+    else:
+        subject = re.sub(
+            r"^\s*(?:(?:can|could|would)\s+you\s+)?(?:please\s+)?"
+            r"(?:(?:give|show|tell|read|find|search(?:\s+for)?)\s+"
+            r"(?:me\s+)?)?",
+            "",
+            command,
+            flags=re.IGNORECASE,
+        )
+        subject = re.sub(r"\blyrics?\b", "", subject, flags=re.IGNORECASE)
+
+    subject = subject.strip(" \t,.:;!?")
+    return f"{subject} lyrics" if subject else None
+
+
+def is_simple_acknowledgement(command):
+    return re.fullmatch(
+        r"\s*(?:okay|ok|alright|all right|got it|right|sure|cool|"
+        r"that'?s good|sounds good|mm-?hmm)[\s,!.?]*",
+        command,
+        re.IGNORECASE,
+    ) is not None
+
+
+def youtube_search_query(command):
+    query = re.sub(
+        r"^\s*(?:(?:no[, ]+)?i\s+(?:said|mean)|actually)\s+",
+        "",
+        command,
+        flags=re.IGNORECASE,
+    )
+    query = re.sub(
+        r"^\s*(?:(?:can|could|would)\s+you\s+)?(?:please\s+)?"
+        r"(?:play|find|search(?:\s+youtube)?(?:\s+for)?|look\s+up)\s+",
+        "",
+        query,
+        flags=re.IGNORECASE,
+    )
+    query = re.sub(r"\s+(?:on\s+)?youtube\s*$", "", query, flags=re.IGNORECASE)
+    return query.strip(" \t,.:;!?")
+
+
+def is_explicit_youtube_result_selection(command):
+    return re.search(
+        r"\b(?:first|second|third|fourth|fifth|\d+(?:st|nd|rd|th)?)"
+        r"(?:\s+search)?\s+result\b"
+        r"|\b(?:first|second|third|fourth|fifth|\d+(?:st|nd|rd|th)?)\s+one\b"
+        r"|\b(?:that|same)\s+(?:one|video|result)\b",
+        command,
+        re.IGNORECASE,
+    ) is not None
+
+
+def interpret_request(history, command, youtube_results, web_results=None):
+    if is_goodbye_request(command):
+        return {"intent": "goodbye", "query": "", "reply": "", "when": "today"}
+
+    lyrics_query = lyrics_search_query(command)
+    if lyrics_query:
+        return {
+            "intent": "web_search",
+            "query": lyrics_query,
+            "reply": "",
+            "when": "today",
+        }
+
+    if is_simple_acknowledgement(command):
+        return {"intent": "chat", "query": "", "reply": "Okay.", "when": "today"}
+
     if is_thank_you_only(command):
         recent_song = any(
             message["role"] == "assistant"
@@ -152,6 +241,25 @@ def interpret_request(history, command, youtube_results):
                 ),
             }
         )
+    if web_results:
+        available = "\n".join(
+            f"{index}. {result['title']} ({result['url']})\n"
+            f"Snippet: {result.get('snippet', '')}"
+            for index, result in enumerate(web_results, start=1)
+        )
+        messages.append(
+            {
+                "role": "system",
+                "content": (
+                    "These are the latest web search results available as context "
+                    "for follow-up questions:\n"
+                    f"{available}\n"
+                    "Answer follow-up questions using the recent conversation and "
+                    "these results. Do not claim details that are not present in "
+                    "the conversation or supplied search results."
+                ),
+            }
+        )
     messages.extend(history)
     messages.append({"role": "user", "content": command})
     for attempt in range(2):
@@ -247,16 +355,10 @@ def interpret_request(history, command, youtube_results):
         intent = "chat"
     if intent == "open_youtube" and query.strip():
         intent = "play_youtube"
-    if intent == "select_youtube_result" and not youtube_results:
-        requested_video = re.search(r"\bplay\s+(?:me\s+)?(.+)$", command)
-        if requested_video:
-            candidate = requested_video.group(1).strip(" \t.,!?;:")
-            if not re.fullmatch(
-                r"(?:the\s+)?(?:first|second|third|fourth|fifth|\d+(?:st|nd|rd|th)?)(?:\s+result)?",
-                candidate,
-            ):
-                intent = "play_youtube"
-                query = candidate
+    if intent == "select_youtube_result" and not is_explicit_youtube_result_selection(command):
+        query = youtube_search_query(command)
+        if query:
+            intent = "play_youtube"
     if intent == "weather" and when not in {"today", "tomorrow"}:
         raise ValueError("The local AI returned an invalid forecast date.")
     if intent == "select_youtube_result" and not query.strip().isdigit():
@@ -297,10 +399,9 @@ def summarize_search_results(query, results):
                             "results. Give a concise, natural answer that sounds good "
                             "when spoken aloud. Say when the results don't establish an "
                             "answer. Never include numbered citations, bracketed source "
-                            "tags, markdown, or references like [1] or [2]. When a "
-                            "specific useful next step fits the topic, end with one "
-                            "short offer that Lucy can fulfill, such as explaining one "
-                            "part in more detail. Do not add a generic follow-up question."
+                            "tags, markdown, or references like [1] or [2]. Do not include "
+                            "follow-up offers or questions; Lucy handles those separately "
+                            "after summarizing the results."
                         ),
                     },
                     {
@@ -337,7 +438,11 @@ def summarize_search_results(query, results):
     if not answer:
         raise ValueError("The local model returned an empty search summary.")
     sources = [
-        {"title": item.get("title", "Untitled"), "url": item.get("href", "")}
+        {
+            "title": item.get("title", "Untitled"),
+            "url": item.get("href", ""),
+            "snippet": item.get("body", ""),
+        }
         for item in results
         if item.get("href")
     ]

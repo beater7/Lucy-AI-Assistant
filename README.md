@@ -1,13 +1,13 @@
 # Lucy AI Assistant
 
-Lucy is a Windows desktop voice assistant with a small floating control widget. [`main.py`](./main.py) starts the assistant; its modules are organized into top-level `assistant/`, `model/`, `audio/`, `tools/`, and `ui/` packages.
+Lucy is a Windows desktop voice assistant with a small floating control widget. [`src/main.py`](./src/main.py) starts the assistant; its application code is organized under `src/`.
 
-`config.py` contains shared settings; `assistant/loop.py` runs the conversation flow, `assistant/context.py` holds conversation state, and `assistant/router.py` dispatches intents. `model/ollama_client.py` handles Ollama interpretation and search summaries, `audio/speech.py` handles speech input and output, `tools/` contains web, YouTube, weather, and folder tools, and `ui/lucy_ui.py` contains the floating widget.
+`src/config.py` contains shared settings; `src/assistant/loop.py` runs the conversation flow, `src/assistant/context.py` holds conversation state, and `src/assistant/router.py` dispatches intents. `src/model/ollama_client.py` handles Ollama interpretation and search summaries, `src/audio/speech.py` handles speech input and output, `src/tools/` contains web, YouTube, weather, and folder tools, and `src/ui/lucy_ui.py` contains the floating widget. The system instructions are in `src/system_prompt.txt`.
 
 ## What Lucy can do
 
 - Answer conversational requests with a local Qwen 2.5 model through Ollama.
-- Search the web with DuckDuckGo and summarize results aloud, or open Google results in the browser.
+- Search the web with DuckDuckGo, summarize results aloud, and ask before opening a result; lyric requests offer lyric pages instead of reproducing lyrics. Google searches open in the browser.
 - Search and play YouTube videos, reuse an existing YouTube tab with the optional Chrome extension, and pause or resume YouTube playback.
 - Tell the time, report time zones, check weather forecasts, and tell jokes.
 - Browse and open folders by name in Desktop, Documents, Downloads, Pictures, Music, and Videos. Lucy does not read files or search elsewhere.
@@ -46,7 +46,7 @@ ollama pull qwen2.5:3b
 Make sure Ollama is running, keep VLC installed, then start Lucy:
 
 ```powershell
-.\.venv\Scripts\python.exe .\main.py
+.\.venv\Scripts\python.exe .\src\main.py
 ```
 
 On first startup, Lucy calibrates the microphone. Keep quiet briefly while she calibrates. She uses the Windows default microphone. Her speech detector is tuned to be more sensitive and waits 1.8 seconds of silence before treating a phrase as complete. The widget displays a live microphone waveform and follows the amplitude of Lucy's generated speech.
@@ -78,4 +78,4 @@ When the extension is unavailable, Lucy falls back to opening YouTube in the bro
 
 ## Customize Lucy
 
-Lucy's assistant instructions are in [`system_prompt.txt`](./system_prompt.txt). Edit that file to adjust her conversational style or request interpretation; restart Lucy to load changes.
+Lucy's assistant instructions are in [`src/system_prompt.txt`](./src/system_prompt.txt). Edit that file to adjust her conversational style or request interpretation; restart Lucy to load changes.
