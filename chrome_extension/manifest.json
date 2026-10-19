@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Lucy YouTube Tab Reuse",
+  "version": "1.5.0",
+  "description": "Lets Lucy reuse an existing YouTube tab on this computer.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2SoO9OWGb/f8EYfB2GGeDh0hSx5xISglqSqmiLzfdhS9htTPoYFyf+T+keJjLlwgS1o1Qp5YiReh5wh/JC0MettVaQ9Ei4IxKtmYgTeMLhgPAXjlbocQU3BV/Afa3l2j+rx3u5vfYfKlcOImVC3KSCaIc0O/dBDSSblaAgHhw8jh9hWytrEZYuDby6hUtWSFrB2NSq9c76zh8fh9EFls1a9gnj8qgqiLI+bXa2949Mr9Yjswge/VDcvL6LbnNQjy0Op38x6XS3A4CyIqVVSCG00Xw8SCR+/5bU5wycErB+pKFO3+z0oBuoE+OamLQ0+sycmibCWDDr4CXq/tuvhabwIDAQAB",
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "https://youtube.com/*",
+    "https://*.youtube.com/*"
+  ],
+  "permissions": ["webNavigation", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["http://127.0.0.1/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
