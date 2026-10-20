@@ -19,7 +19,9 @@ def is_thank_you_only(command):
         return False
 
     remaining = re.sub(
-        r"\b(?:thank\s+you|thanks|okay|ok|it'?s|it\s+is|playing|so\s+much|a\s+lot)\b",
+        r"\b(?:thank\s+you|thanks|okay|ok|it'?s|it\s+is|that'?s|that\s+was|"
+        r"was|playing|so\s+much|a\s+lot|really|very|great|awesome|excellent|"
+        r"perfect|wonderful|fantastic)\b",
         "",
         command,
         flags=re.IGNORECASE,
@@ -28,10 +30,17 @@ def is_thank_you_only(command):
 
 
 def is_goodbye_request(command):
-    return re.search(
-        r"\b(?:good\s*night|goodbye|bye(?:[\s-]*bye)?|see\s+you|take\s+care|"
-        r"that's\s+all|you\s+can\s+stop(?:\s+now)?)\b",
+    if re.search(
+        r"\byou\s+can\s+(?:go\s+offline|stop(?:\s+now)?)\b",
         command,
+        re.IGNORECASE,
+    ):
+        return True
+
+    return re.search(
+        r"(?:^|[\s,])(?:good\s*night|goodbye|bye(?:[\s-]*bye)?)"
+        r"(?:\s+(?:lucy|for now|now|then|everyone|all))?[\s!.?]*$",
+        command.strip(),
         re.IGNORECASE,
     ) is not None
 
@@ -353,6 +362,9 @@ def interpret_request(history, command, youtube_results, web_results=None):
         if query.strip() or not reply.strip():
             raise ValueError("The local AI returned an unsupported request type.")
         intent = "chat"
+    if intent == "goodbye" and not is_goodbye_request(command):
+        intent = "chat"
+        reply = "I'm here if you need anything else."
     if intent == "open_youtube" and query.strip():
         intent = "play_youtube"
     if intent == "select_youtube_result" and not is_explicit_youtube_result_selection(command):

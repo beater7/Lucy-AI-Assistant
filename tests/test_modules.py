@@ -61,6 +61,23 @@ class ModuleTests(unittest.TestCase):
                 result = interpret_request([], command, [])
                 self.assertEqual(result["intent"], "goodbye")
 
+    def test_goodbye_intent_requires_explicit_farewell_or_offline_request(self):
+        model_response = {
+            "intent": "goodbye",
+            "query": "",
+            "reply": "Okay, I'll let you go. Take care!",
+            "when": "today",
+        }
+        for command in ("tell me about the goodbye song",):
+            with self.subTest(command=command), patch(
+                "model.ollama_client.urlopen",
+                return_value=OllamaResponse(model_response),
+            ):
+                result = interpret_request([], command, [])
+
+            self.assertEqual(result["intent"], "chat")
+            self.assertEqual(result["reply"], "I'm here if you need anything else.")
+
     def test_goodnight_replies_are_natural_and_do_not_repeat(self):
         context = AssistantContext(
             history=[
@@ -116,6 +133,14 @@ class ModuleTests(unittest.TestCase):
         )
         self.assertEqual(result["intent"], "chat")
         self.assertEqual(result["reply"], "Okay.")
+
+    def test_grateful_acknowledgement_does_not_end_session(self):
+        for command in ("great thank you", "thank you so much", "thanks, that's great"):
+            with self.subTest(command=command):
+                with patch("model.ollama_client.urlopen") as model_request:
+                    result = interpret_request([], command, [])
+                self.assertEqual(result["intent"], "chat")
+                model_request.assert_not_called()
 
     def test_named_video_is_not_treated_as_cached_result_selection(self):
         self.assertFalse(
