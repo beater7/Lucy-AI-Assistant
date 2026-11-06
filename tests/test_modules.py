@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 from threading import Event
 from unittest.mock import Mock, patch
-
+## test ets
 # The application uses a src layout and can also be started directly with
 # `python src/main.py`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
